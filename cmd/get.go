@@ -31,22 +31,25 @@ to quickly create a Cobra application.`,
 		}
 		domain, host := util.GetDomain(args[0])
 
-		//	flg := cmd.Flags().GetBool("private")
-		flg, _ := cmd.Flags().GetBool("private")
+		dns := ""
+		//	flg, _ := cmd.Flags().GetBool("private")
 
 		zones := myaws.GetHostedZone(domain)
 
-		dns := ""
-
-		for id, ztype := range zones {
-			log.WithFields(
-				log.Fields{
-					"zoneid":  id,
-					"private": ztype,
-				}).Debug()
-			if ztype == flg {
-				dns = myaws.GetDNSFromRecoard(id, host)
+		if len(zones) > 1 {
+			for _, v := range zones {
+				log.WithFields(
+					log.Fields{
+						"name":    v.Name,
+						"zoneid":  v.Id,
+						"private": v.Private,
+						"records": v.Records,
+						//					"records" v.Records,
+					}).Warn()
 			}
+		} else {
+			dns = myaws.GetDNSFromRecoard(zones[0].Id, host)
+
 		}
 
 		arn := myaws.GetALB(dns)

@@ -1,10 +1,11 @@
 package util
 
 import (
-	"log"
 	"net/url"
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func GetDomain(hostname string) (string, string) {
@@ -25,7 +26,20 @@ func GetDomain(hostname string) (string, string) {
 		parts = strings.Split(hostname, ".")
 	}
 
-	domain := parts[len(parts)-2] + "." + parts[len(parts)-1]
+	log.WithFields(
+		log.Fields{
+			"domain-parts": parts,
+		}).Debug()
+
+	domain := ""
+
+	// for co.jp
+	if parts[len(parts)-1] == "jp" && parts[len(parts)-2] == "co" {
+		domain = parts[len(parts)-3] + "." + parts[len(parts)-2] + "." + parts[len(parts)-1]
+	} else {
+		domain = parts[len(parts)-2] + "." + parts[len(parts)-1]
+	}
+
 	host := strings.Join(parts, ".")
 	return domain, host
 
