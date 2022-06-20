@@ -12,7 +12,7 @@ func GetDomain(hostname string) (string, string) {
 
 	pattern := "https://|http://"
 	re := regexp.MustCompile(pattern)
-	parts := []string{}
+	var parts []string
 
 	if re.MatchString(hostname) {
 		u, err := url.Parse(hostname)

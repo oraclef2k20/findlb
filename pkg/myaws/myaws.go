@@ -14,14 +14,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type zone struct {
+type Zone struct {
 	Id      string
 	Name    string
 	Private bool
 	Records int64
 }
 
-func GetHostedZone(domain string) []zone {
+func GetHostedZone(domain string) []Zone {
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 
@@ -36,14 +36,14 @@ func GetHostedZone(domain string) []zone {
 
 	reg := regexp.MustCompile(`^` + domain + `.$`)
 
-	zones := []zone{}
+	zones := []Zone{}
 	svc := route53.NewFromConfig(cfg)
 	input := &route53.ListHostedZonesInput{}
 	res, _ := svc.ListHostedZones(context.TODO(), input)
 
 	for _, v := range res.HostedZones {
 		if reg.MatchString(aws.ToString(v.Name)) {
-			zones = append(zones, zone{
+			zones = append(zones, Zone{
 				Id:      aws.ToString(v.Id)[12:],
 				Name:    aws.ToString((v.Name)),
 				Private: v.Config.PrivateZone,
@@ -155,17 +155,20 @@ func ListAllResourceRecordSets(svc *route53.Client, input *route53.ListResourceR
 }
 
 func GetALB(DNSName string) string {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-
-	if err != nil {
-		log.Fatalf("unable to load SDK config, %v", err)
-	}
-
-	svc := elbv2.NewFromConfig(cfg)
 
 	if len(DNSName) > 0 {
 		DNSName = DNSName[:len(DNSName)-1]
+	} else {
+		log.Warn(
+			"Can not found DNSName from recoads.",
+		)
+		return ""
 	}
+
+	log.WithFields(
+		log.Fields{
+			"DNSName": DNSName,
+		}).Debug()
 
 	parts := strings.Split(DNSName, ".")
 	host := parts[:2]
@@ -180,6 +183,7 @@ func GetALB(DNSName string) string {
 	if nparts[0] == "internal" {
 		nparts = nparts[1:]
 	}
+	region := host[1]
 	// remove uid
 	nparts = nparts[:len(nparts)-1]
 
@@ -189,8 +193,17 @@ func GetALB(DNSName string) string {
 		log.Fields{
 			"DNSName": DNSName,
 			"name":    lbname,
+			"host":    host,
+			"region":  region,
 		}).Debug()
 
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+
+	if err != nil {
+		log.Fatalf("unable to load SDK config, %v", err)
+	}
+
+	svc := elbv2.NewFromConfig(cfg)
 	input := &elbv2.DescribeLoadBalancersInput{Names: []string{lbname}}
 	res, _ := svc.DescribeLoadBalancers(context.TODO(), input)
 

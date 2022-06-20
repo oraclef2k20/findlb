@@ -6,7 +6,9 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/hacker65536/findlb/pkg/myaws"
 	"github.com/hacker65536/findlb/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -45,11 +47,15 @@ to quickly create a Cobra application.`,
 						"private": v.Private,
 						"records": v.Records,
 						//					"records" v.Records,
-					}).Warn()
+					}).Debug()
 			}
+
+			id := Selector(zones)
+
+			dns = myaws.GetDNSFromRecoard(id, host)
+
 		} else {
 			dns = myaws.GetDNSFromRecoard(zones[0].Id, host)
-
 		}
 
 		arn := myaws.GetALB(dns)
@@ -71,4 +77,42 @@ func init() {
 	// is called directly, e.g.:
 	// getCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	getCmd.Flags().BoolP("private", "p", false, "private zone")
+}
+
+func Selector(zones []myaws.Zone) string {
+
+	qs := &survey.Select{}
+
+	for k, v := range zones {
+
+		qs.Options = append(qs.Options, v.Id)
+
+		log.WithFields(
+			log.Fields{
+				"k": k,
+				"v": v,
+			}).Debug()
+
+	}
+
+	qs.Description = func(value string, index int) string {
+		str := "id:" + zones[index].Id
+		str += "\tname:" + zones[index].Name
+		str += "\tprivate:" + strconv.FormatBool(zones[index].Private)
+		str += "\trecords:" + strconv.Itoa(int(zones[index].Records))
+		return str
+	}
+
+	answerIndex := 0
+
+	err := survey.AskOne(qs, &answerIndex)
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"err": err,
+			}).Error()
+	}
+
+	fmt.Printf("chose %s\n", zones[answerIndex].Id)
+	return zones[answerIndex].Id
 }
