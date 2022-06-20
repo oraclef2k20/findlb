@@ -89,16 +89,6 @@ func GetDNSFromRecoard(hostedzone string, host string) string {
 	for _, v := range res {
 
 		if hasField(v.AliasTarget, "DNSName") {
-			//			j, _ := json.Marshal(v)
-			//		fmt.Println(string(j))
-
-			/*
-				log.WithFields(
-					log.Fields{
-						"value": aws.ToString(v.Name),
-						"dns":   aws.ToString(v.AliasTarget.DNSName),
-					}).Debug()
-			*/
 			if reg.MatchString(aws.ToString(v.Name)) {
 
 				log.WithFields(
@@ -110,8 +100,6 @@ func GetDNSFromRecoard(hostedzone string, host string) string {
 			}
 
 		}
-		//return aws.ToString(v.AliasTarget.DNSName)
-		//}
 
 	}
 	return ""
@@ -165,12 +153,10 @@ func GetALB(DNSName string) string {
 		return ""
 	}
 
-	log.WithFields(
-		log.Fields{
-			"DNSName": DNSName,
-		}).Debug()
-
 	parts := strings.Split(DNSName, ".")
+
+	region := parts[len(parts)-4 : len(parts)-3][0]
+
 	host := parts[:2]
 
 	// remove dualstack
@@ -180,10 +166,10 @@ func GetALB(DNSName string) string {
 
 	// remove internal
 	nparts := strings.Split(host[0], "-")
+
 	if nparts[0] == "internal" {
 		nparts = nparts[1:]
 	}
-	region := host[1]
 	// remove uid
 	nparts = nparts[:len(nparts)-1]
 
@@ -195,9 +181,17 @@ func GetALB(DNSName string) string {
 			"name":    lbname,
 			"host":    host,
 			"region":  region,
+			"nparts":  nparts,
 		}).Debug()
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+
+	/*
+		log.WithFields(
+			log.Fields{
+				"cfg": cfg,
+			}).Debug()
+	*/
 
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
@@ -205,7 +199,11 @@ func GetALB(DNSName string) string {
 
 	svc := elbv2.NewFromConfig(cfg)
 	input := &elbv2.DescribeLoadBalancersInput{Names: []string{lbname}}
-	res, _ := svc.DescribeLoadBalancers(context.TODO(), input)
+
+	res, err := svc.DescribeLoadBalancers(context.TODO(), input)
+	if err != nil {
+		log.Fatalf("err %v", err)
+	}
 
 	for _, v := range res.LoadBalancers {
 
