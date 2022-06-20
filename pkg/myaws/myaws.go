@@ -76,9 +76,10 @@ func GetDNSFromRecoard(hostedzone string, host string) string {
 		HostedZoneId: aws.String(hostedzone),
 	}
 
-	//	res, _ := svc.ListResourceRecordSets(context.TODO(), input)
-
-	res, _ := ListAllResourceRecordSets(svc, input)
+	res, err := ListAllResourceRecordSets(svc, input)
+	if err != nil {
+		log.Fatalf("err %v", err)
+	}
 
 	reg := regexp.MustCompile(`^` + host)
 
@@ -107,8 +108,6 @@ func GetDNSFromRecoard(hostedzone string, host string) string {
 }
 
 func ListAllResourceRecordSets(svc *route53.Client, input *route53.ListResourceRecordSetsInput) (rrsets []types.ResourceRecordSet, err error) {
-	//	res, _ := svc.ListResourceRecordSets(context.TODO(), input)
-	//	return res
 
 	for {
 		var resp *route53.ListResourceRecordSetsOutput
@@ -185,13 +184,6 @@ func GetALB(DNSName string) string {
 		}).Debug()
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-
-	/*
-		log.WithFields(
-			log.Fields{
-				"cfg": cfg,
-			}).Debug()
-	*/
 
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
