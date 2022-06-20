@@ -34,7 +34,6 @@ to quickly create a Cobra application.`,
 		domain, host := util.GetDomain(args[0])
 
 		dns := ""
-		//	flg, _ := cmd.Flags().GetBool("private")
 
 		zones := myaws.GetHostedZone(domain)
 
@@ -46,7 +45,6 @@ to quickly create a Cobra application.`,
 						"zoneid":  v.Id,
 						"private": v.Private,
 						"records": v.Records,
-						//					"records" v.Records,
 					}).Debug()
 			}
 
@@ -76,7 +74,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// getCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	getCmd.Flags().BoolP("private", "p", false, "private zone")
 }
 
 func Selector(zones []myaws.Zone) string {
